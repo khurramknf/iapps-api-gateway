@@ -1,57 +1,41 @@
-// File: services/api-gateway/backend/src/main.ts
+// File: api-gateway/backend/src/main.ts
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
 import { ValidationPipe } from '@nestjs/common';
-import { createProxyMiddleware } from 'http-proxy-middleware';
 import * as express from 'express';
-import * as cors from 'cors';
+import cors from 'cors';
+import { setupProxies } from './proxy/setupProxies';
+import { AllExceptionsFilter } from './filters/all-exceptions.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
-
-  // Get Express instance
   const server = app.getHttpAdapter().getInstance() as express.Express;
 
-  // 🔥 Apply full manual CORS (before proxy)
+  const origins = (configService.get<string>('CORS_ORIGIN') || 'http://localhost:5173')
+    .split(',')
+    .map((s) => s.trim());
+
   server.use(
     cors({
-      origin: 'http://localhost:5173',
-      credentials: true,
-      methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-      allowedHeaders: 'Content-Type, Authorization',
-    })
+      origin: origins,
+      credentials: true, // ✅ allow cookies
+    }),
   );
-
-  // ✅ Handle preflight (OPTIONS) manually to prevent 403
   server.options('*', cors());
 
-  // Proxy: Auth Service
-  server.use(
-    '/api/auth',
-    createProxyMiddleware({
-      target: 'http://localhost:3100',
-      changeOrigin: true,
-      pathRewrite: { '^/api/auth': '/auth' },
-      secure: false,
-      logLevel: 'debug',
-    })
-  );
+  app.useGlobalPipes(new ValidationPipe({ transform: true }));
+  app.useGlobalFilters(new AllExceptionsFilter());
 
-  // Proxy: Users Service
-  server.use(
-    '/api/users',
-    createProxyMiddleware({
-      target: 'http://localhost:3200',
-      changeOrigin: true,
-      pathRewrite: { '^/api/users': '/users' },
-      secure: false,
-      logLevel: 'debug',
-    })
-  );
+  setupProxies(server, configService);
 
-  app.useGlobalPipes(new ValidationPipe());
+  server.use('/api', (req, res) => {
+    res.status(404).json({
+      statusCode: 404,
+      message: `Route not found: ${req.originalUrl}`,
+    });
+  });
 
   const port = configService.get('PORT') || 3002;
   await app.listen(port);

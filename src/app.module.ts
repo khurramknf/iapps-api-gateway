@@ -1,28 +1,14 @@
-// services/api-gateway/backend/src/app.module.ts
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ProxyModule } from './proxy/proxy.module';
-import { join } from 'path';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { ConfigModule } from '@nestjs/config';
+import { HealthController } from './health.controller';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: [
-        join(__dirname, '../.env.test'),
-        join(__dirname, '../.env')
-      ]
+      envFilePath: '.env',
     }),
-    ProxyModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
+  controllers: [HealthController],
 })
-export class AppModule {
-  constructor(private configService: ConfigService) {
-    const port = this.configService.get('PORT');
-    console.log(`API Gateway running on port ${port}`);
-  }
-}
+export class AppModule {}
