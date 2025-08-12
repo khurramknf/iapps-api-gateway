@@ -3,9 +3,7 @@
 import { Options } from 'http-proxy-middleware';
 import { ConfigService } from '@nestjs/config';
 
-interface ProxyConfig extends Options {
-  path: string;
-}
+interface ProxyConfig extends Options { path: string; }
 
 export const proxyConfig = (configService: ConfigService): ProxyConfig[] => {
   return [
@@ -23,19 +21,26 @@ export const proxyConfig = (configService: ConfigService): ProxyConfig[] => {
       changeOrigin: true,
       logLevel: 'debug',
     },
+    // ✅ Organizations
     {
-      path: '/api/admin/organizations',
-      target: configService.get('ADMINPANEL_SERVICE_URL'),
-      pathRewrite: { '^/api/admin/organizations': '/organizations' },
-      changeOrigin: true,
-      logLevel: 'debug',
+      path: '/api/organizations',
+      target: configService.get('ORGANIZATIONS_SERVICE_URL'),
+      pathRewrite: { '^/api/organizations': '/organizations' },
+      changeOrigin: true, logLevel: 'debug',
     },
+    // ✅ Businesses
     {
-      path: '/api/admin/businesses',
+      path: '/api/businesses',
       target: configService.get('BUSINESSES_SERVICE_URL'),
-      pathRewrite: { '^/api/admin/businesses': '/businesses' },
-      changeOrigin: true,
-      logLevel: 'debug',
+      pathRewrite: { '^/api/businesses': '/businesses' },
+      changeOrigin: true, logLevel: 'debug',
+    },
+    // ✅ Websites
+    {
+      path: '/api/websites',
+      target: configService.get('WEBSITES_SERVICE_URL'),
+      pathRewrite: { '^/api/websites': '/websites' },
+      changeOrigin: true, logLevel: 'debug',
     },
   ];
 };
